@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,8 +9,9 @@ import AircraftState from '@/components/AircraftState';
 import AircraftStateDetails from '@/components/AircraftStateDetails';
 import AircraftMap from '@/components/AircraftMap';
 import { ApiError } from '@/types/errors';
+import Dashboard from '@/components/Dashboard';
 
-export default function Index() {
+const Index: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { aircraftData, isLoading, searchAircraft, refreshState } = useAircraftData();
 
@@ -82,7 +84,12 @@ export default function Index() {
           </div>
 
           <div className="h-[600px] lg:h-full min-h-[400px]">
-            <AircraftMap state={aircraftData.currentState} />
+            {aircraftData?.currentState &&
+              aircraftData.currentState.latitude != null &&
+              aircraftData.currentState.longitude != null
+                ? <AircraftMap state={aircraftData.currentState} />
+                : <Dashboard data={aircraftData} />
+            }
           </div>
         </div>
       )}
@@ -98,6 +105,10 @@ export default function Index() {
           </button>
         ))}
       </div>
+
+      <button onClick={refreshState}>Refresh State</button>
     </div>
   );
-}
+};
+
+export default Index;

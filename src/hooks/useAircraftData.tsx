@@ -88,10 +88,12 @@ const useAircraftData = () => {
         return;
       }
 
-      // Fetch current state from OpenSky
-      const stateResponse = await fetch(
-        `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${icao24}`
-      );
+      // Convert ICAO code to lowercase when querying the OpenSky API
+      const lowerIcao = icao24.toLowerCase();
+      const queryUrl = `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${lowerIcao}`;
+      console.log("Querying OpenSky API with URL:", queryUrl);
+
+      const stateResponse = await fetch(queryUrl);
 
       if (!stateResponse.ok) {
         toast.error('Error fetching state data', {
@@ -109,6 +111,7 @@ const useAircraftData = () => {
       }
 
       const stateData = await stateResponse.json();
+      console.log("OpenSky state data:", JSON.stringify(stateData, null, 2));
       
       if (!stateData.states || stateData.states.length === 0) {
         toast.warning('No current state data', {
@@ -125,31 +128,62 @@ const useAircraftData = () => {
         return;
       }
 
-      const state = stateData.states[0];
+      const formattedStates = stateData.states.map((state: any[]) => {
+        // Extract fields from the state vector using indices
+        const icao = state[0];
+        const callsign = state[1]?.trim() || 'Unknown';
+        const country = state[2] || 'Unknown';
+        const timePosition = state[3];
+        const lastContact = state[4];
+        const longitude = state[5];
+        const latitude = state[6];
+        const altitude = state[7];
+        const onGround = state[8];
+        const velocity = state[9];
+        const trueTrack = state[10];
+        const verticalRate = state[11];
+        const sensors = state[12];
+        const geoAltitude = state[13];
+        const squawk = state[14];
+        const spi = state[15];
+        const positionSource = state[16];
+
+        // Additional logging to check for null or unexpected values
+        if (!icao) {
+          console.warn('Extraction Warning: Missing ICAO code for state vector:', state);
+        }
+        if (latitude === null || latitude === undefined || longitude === null || longitude === undefined) {
+          console.warn('Extraction Warning: Missing coordinates for state vector with ICAO:', icao, 'State:', state);
+        }
+
+        return { icao, callsign, country, timePosition, lastContact, longitude, latitude, altitude, onGround, velocity, trueTrack, verticalRate, sensors, geoAltitude, squawk, spi, positionSource };
+      });
+
+      const state = formattedStates[0];
       const currentState: StateVector = {
-        icao24: state[0],
-        callsign: state[1]?.trim() || null,
-        originCountry: state[2],
-        timePosition: state[3],
-        lastContact: state[4],
-        longitude: state[5],
-        latitude: state[6],
-        baroAltitude: state[7],
-        onGround: state[8],
-        velocity: state[9],
-        trueTrack: state[10],
-        verticalRate: state[11],
-        sensors: state[12],
-        geoAltitude: state[13],
-        squawk: state[14],
-        spi: state[15],
-        positionSource: state[16],
+        icao24: state.icao,
+        callsign: state.callsign,
+        originCountry: state.country,
+        timePosition: state.timePosition,
+        lastContact: state.lastContact,
+        longitude: state.longitude,
+        latitude: state.latitude,
+        baroAltitude: state.altitude,
+        onGround: state.onGround,
+        velocity: state.velocity,
+        trueTrack: state.trueTrack,
+        verticalRate: state.verticalRate,
+        sensors: state.sensors,
+        geoAltitude: state.geoAltitude,
+        squawk: state.squawk,
+        spi: state.spi,
+        positionSource: state.positionSource,
         category: null,
         timestamp: Date.now()
       };
 
       const updatedData = {
-        icao24: icao24,
+        icao24: state.icao,
         tailNumber: tailNumber,
         currentState,
         isLoading: false,
