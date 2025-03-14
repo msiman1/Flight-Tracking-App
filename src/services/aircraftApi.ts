@@ -1,40 +1,43 @@
 import { StateVector } from "@/types/aircraft";
 
-export async function getTailToIcao(tailNumber: string): Promise<string> {
-  const response = await fetch(`${import.meta.env.VITE_ADSBDB_BASE_URL}/aircraft/${tailNumber}`);
-  
+// Function to get the ICAO code from a tail number using the ADSBDB API
+export const getTailToIcao = async (tailNumber: string): Promise<string> => {
+  const url = `${import.meta.env.VITE_ADSBDB_BASE_URL}/aircraft/${tailNumber}`;
+
+  const response = await fetch(url);
   if (!response.ok) {
-    throw {
-      message: `Could not find ICAO24 code for ${tailNumber}`,
-      status: response.status
-    };
+    throw new Error(`Failed to fetch ICAO code: ${response.statusText}`);
   }
 
   const data = await response.json();
-  return data.icao24;
-}
+  // Assuming the ICAO code is returned in data.icao24, adjust as necessary
+  const icao = data.icao24 || '';
+  if (!icao) {
+    throw new Error('ICAO code not found in the response.');
+  }
+  return icao;
+};
 
-export async function getCurrentStateByIcao(icao24: string): Promise<StateVector | null> {
-  const response = await fetch(`${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${icao24}`);
-  
+// Function to get the current state (StateVector) from the ICAO code using the OpenSky API
+export const getCurrentStateByIcao = async (icao: string): Promise<StateVector | null> => {
+  const url = `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${icao.toLowerCase()}`;
+
+  const response = await fetch(url);
   if (!response.ok) {
-    throw {
-      message: 'Failed to retrieve current aircraft data',
-      status: response.status
-    };
+    throw new Error(`Failed to fetch state data: ${response.statusText}`);
   }
 
   const data = await response.json();
-  
   if (!data.states || data.states.length === 0) {
     return null;
   }
 
+  // Extract the first state vector from the returned states array
   const state = data.states[0];
-  return {
+  const stateVector: StateVector = {
     icao24: state[0],
-    callsign: state[1]?.trim() || null,
-    originCountry: state[2],
+    callsign: state[1]?.trim() || 'Unknown',
+    originCountry: state[2] || 'Unknown',
     timePosition: state[3],
     lastContact: state[4],
     longitude: state[5],
@@ -52,4 +55,6 @@ export async function getCurrentStateByIcao(icao24: string): Promise<StateVector
     category: null,
     timestamp: Date.now()
   };
-}
+  
+  return stateVector;
+};

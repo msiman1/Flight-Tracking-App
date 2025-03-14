@@ -22,11 +22,6 @@ const Index: React.FC = () => {
     }
   };
 
-  const handleExampleClick = (example: string) => {
-    setSearchTerm(example);
-    searchAircraft(example);
-  };
-
   useEffect(() => {
     let refreshInterval: number | undefined;
 
