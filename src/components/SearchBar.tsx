@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { Search } from 'lucide-react';
@@ -34,7 +33,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <div className="relative flex items-center">
           <Input
             type="text"
-            placeholder="Enter aircraft tail number (e.g., N12345)"
+            placeholder="Enter aircraft tail number"
             value={tailNumber}
             onChange={(e) => setTailNumber(e.target.value)}
             className="pr-20 h-14 rounded-2xl bg-white/80 backdrop-blur border border-white/40 shadow-sm text-lg transition-all focus-visible:ring-2 focus-visible:ring-red-400/20 focus-visible:border-red-400/30"

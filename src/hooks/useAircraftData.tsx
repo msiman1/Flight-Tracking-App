@@ -1,17 +1,31 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { AircraftData, StateVector } from '@/types/aircraft';
+import { getTailToIcao, getCurrentStateByIcao } from '@/services/aircraftApi';
 
-const useAircraftData = () => {
-  const [aircraftData, setAircraftData] = useState<AircraftData>({
-    icao24: '',
-    tailNumber: '',
-    currentState: null,
-    isLoading: false,
-    error: null,
-    lastUpdated: null,
-  });
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+// Define the return type of the hook
+interface UseAircraftDataReturn {
+  aircraftData: AircraftData;
+  isLoading: boolean;
+  error: string | null;
+  searchAircraft: (tailNumber: string) => Promise<void>;
+  refreshState: () => void;
+}
+
+// Initial state for AircraftData
+const initialAircraftData: AircraftData = {
+  icao24: '',
+  tailNumber: '',
+  currentState: null,
+  isLoading: false,
+  error: null,
+  lastUpdated: Date.now()
+};
+
+const useAircraftData = (): UseAircraftDataReturn => {
+  const [aircraftData, setAircraftData] = useState<AircraftData>(initialAircraftData);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Check if environment variables are set
   if (!import.meta.env.VITE_ADSBDB_BASE_URL || !import.meta.env.VITE_OPENSKY_BASE_URL) {
@@ -20,269 +34,63 @@ const useAircraftData = () => {
     });
   }
 
-  const searchAircraft = async (tailNumber: string) => {
-    // Clear any existing error state
-    setAircraftData(prev => ({ ...prev, error: null }));
-    setIsLoading(true);
-
+  const searchAircraft = useCallback(async (tailNumber: string) => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_ADSBDB_BASE_URL}/aircraft/${tailNumber}`);
+      // Fetch the ICAO code using the tail number
+      const icao = await getTailToIcao(tailNumber);
+      if (!icao) {
+        setError('ICAO code not found for the provided tail number.');
+        setAircraftData(prev => ({ ...prev, tailNumber, error: 'ICAO code not found.' }));
+        return;
+      }
       
-      if (!response.ok) {
-        if (response.status === 404) {
-          toast.error('Aircraft not found', {
-            description: 'No aircraft found with this registration number.'
-          });
-          setAircraftData({
-            icao24: '',
-            tailNumber: tailNumber,
-            currentState: null,
-            isLoading: false,
-            error: 'Aircraft not found',
-            lastUpdated: null
-          });
-          return;
-        }
-        
-        toast.error('Error fetching aircraft data', {
-          description: 'Please try again later.'
-        });
-        setAircraftData({
-          icao24: '',
-          tailNumber: tailNumber,
-          currentState: null,
-          isLoading: false,
-          error: 'Error fetching aircraft data',
-          lastUpdated: null
-        });
-        return;
+      // Fetch the current state using the ICAO code
+      const currentState: StateVector | null = await getCurrentStateByIcao(icao);
+      if (!currentState) {
+        setError('No current state data available.');
       }
 
-      const data = await response.json();
-      console.log("ADSBDB response data:", JSON.stringify(data, null, 2));
-      
-      let icao24 = data.icao24 || data.icao || data.mode_s;
-      if (!icao24 && data.response && data.response.aircraft) {
-        const aircraft = data.response.aircraft;
-        if (Array.isArray(aircraft) && aircraft.length > 0) {
-          icao24 = aircraft[0].icao24 || aircraft[0].icao || aircraft[0].mode_s;
-        } else if (typeof aircraft === 'object') {
-          icao24 = aircraft.icao24 || aircraft.icao || aircraft.mode_s;
-        }
-      }
-
-      console.log("Extracted ICAO code:", icao24);
-
-      if (!icao24) {
-        toast.error('Invalid aircraft data', {
-          description: 'The aircraft data received is invalid. Check the console for details.'
-        });
-        setAircraftData({
-          icao24: '',
-          tailNumber: tailNumber,
-          currentState: null,
-          isLoading: false,
-          error: 'Invalid aircraft data',
-          lastUpdated: null
-        });
-        return;
-      }
-
-      // Convert ICAO code to lowercase when querying the OpenSky API
-      const lowerIcao = icao24.toLowerCase();
-      const queryUrl = `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${lowerIcao}`;
-      console.log("Querying OpenSky API with URL:", queryUrl);
-
-      const stateResponse = await fetch(queryUrl);
-
-      if (!stateResponse.ok) {
-        toast.error('Error fetching state data', {
-          description: 'Could not fetch current aircraft state.'
-        });
-        setAircraftData({
-          icao24: icao24,
-          tailNumber: tailNumber,
-          currentState: null,
-          isLoading: false,
-          error: 'Error fetching state data',
-          lastUpdated: null
-        });
-        return;
-      }
-
-      const stateData = await stateResponse.json();
-      console.log("OpenSky state data:", JSON.stringify(stateData, null, 2));
-      
-      if (!stateData.states || stateData.states.length === 0) {
-        toast.warning('No current state data', {
-          description: 'The aircraft is not currently being tracked.'
-        });
-        setAircraftData({
-          icao24: icao24,
-          tailNumber: tailNumber,
-          currentState: null,
-          isLoading: false,
-          error: null,
-          lastUpdated: Date.now()
-        });
-        return;
-      }
-
-      const formattedStates = stateData.states.map((state: any[]) => {
-        // Extract fields from the state vector using indices
-        const icao = state[0];
-        const callsign = state[1]?.trim() || 'Unknown';
-        const country = state[2] || 'Unknown';
-        const timePosition = state[3];
-        const lastContact = state[4];
-        const longitude = state[5];
-        const latitude = state[6];
-        const altitude = state[7];
-        const onGround = state[8];
-        const velocity = state[9];
-        const trueTrack = state[10];
-        const verticalRate = state[11];
-        const sensors = state[12];
-        const geoAltitude = state[13];
-        const squawk = state[14];
-        const spi = state[15];
-        const positionSource = state[16];
-
-        // Additional logging to check for null or unexpected values
-        if (!icao) {
-          console.warn('Extraction Warning: Missing ICAO code for state vector:', state);
-        }
-        if (latitude === null || latitude === undefined || longitude === null || longitude === undefined) {
-          console.warn('Extraction Warning: Missing coordinates for state vector with ICAO:', icao, 'State:', state);
-        }
-
-        return { icao, callsign, country, timePosition, lastContact, longitude, latitude, altitude, onGround, velocity, trueTrack, verticalRate, sensors, geoAltitude, squawk, spi, positionSource };
-      });
-
-      const state = formattedStates[0];
-      const currentState: StateVector = {
-        icao24: state.icao,
-        callsign: state.callsign,
-        originCountry: state.country,
-        timePosition: state.timePosition,
-        lastContact: state.lastContact,
-        longitude: state.longitude,
-        latitude: state.latitude,
-        baroAltitude: state.altitude,
-        onGround: state.onGround,
-        velocity: state.velocity,
-        trueTrack: state.trueTrack,
-        verticalRate: state.verticalRate,
-        sensors: state.sensors,
-        geoAltitude: state.geoAltitude,
-        squawk: state.squawk,
-        spi: state.spi,
-        positionSource: state.positionSource,
-        category: null,
-        timestamp: Date.now()
-      };
-
-      const updatedData = {
-        icao24: state.icao,
-        tailNumber: tailNumber,
+      const newData: AircraftData = {
+        icao24: icao,
+        tailNumber,
         currentState,
         isLoading: false,
         error: null,
         lastUpdated: Date.now()
       };
-      console.log("Final aircraft data set to:", updatedData);
-      setAircraftData(updatedData);
-    } catch (err) {
-      toast.error('Network error', {
-        description: 'Could not connect to the server.'
-      });
-      setAircraftData({
-        icao24: '',
-        tailNumber: tailNumber,
-        currentState: null,
-        isLoading: false,
-        error: 'Network error',
-        lastUpdated: null
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const refreshState = async () => {
-    if (!aircraftData.currentState?.icao24) {
-      toast.error('No aircraft selected', {
-        description: 'Please search for an aircraft first.'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${aircraftData.currentState.icao24}`
-      );
-
-      if (!response.ok) {
-        toast.error('Error refreshing state', {
-          description: 'Could not fetch updated aircraft state.'
-        });
-        return;
-      }
-
-      const data = await response.json();
       
-      if (!data.states || data.states.length === 0) {
-        toast.warning('No current state data', {
-          description: 'The aircraft is not currently being tracked.'
-        });
-        setAircraftData(prev => ({
-          ...prev,
-          lastUpdated: Date.now()
-        }));
-        return;
-      }
-
-      const state = data.states[0];
-      const currentState: StateVector = {
-        icao24: state[0],
-        callsign: state[1]?.trim() || null,
-        originCountry: state[2],
-        timePosition: state[3],
-        lastContact: state[4],
-        longitude: state[5],
-        latitude: state[6],
-        baroAltitude: state[7],
-        onGround: state[8],
-        velocity: state[9],
-        trueTrack: state[10],
-        verticalRate: state[11],
-        sensors: state[12],
-        geoAltitude: state[13],
-        squawk: state[14],
-        spi: state[15],
-        positionSource: state[16],
-        category: null,
-        timestamp: Date.now()
-      };
-
-      setAircraftData(prev => ({
-        ...prev,
-        currentState,
-        error: null,
-        lastUpdated: Date.now()
-      }));
-    } catch (err) {
-      toast.error('Network error', {
-        description: 'Could not connect to the server.'
-      });
+      setAircraftData(newData);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while fetching aircraft data.');
+      setAircraftData(prev => ({ ...prev, error: err.message || 'Error occurred' }));
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
+  }, []);
+
+  const refreshState = useCallback(() => {
+    if (aircraftData.tailNumber) {
+      searchAircraft(aircraftData.tailNumber);
+    }
+  }, [aircraftData.tailNumber, searchAircraft]);
+
+  // Combine local state with aircraftData state
+  const combinedData: AircraftData = {
+    ...aircraftData,
+    isLoading: loading,
+    error: error,
+    lastUpdated: aircraftData.lastUpdated
   };
 
-  return { aircraftData, isLoading, searchAircraft, refreshState };
+  return {
+    aircraftData: combinedData,
+    isLoading: loading,
+    error,
+    searchAircraft,
+    refreshState
+  };
 };
 
 export default useAircraftData;

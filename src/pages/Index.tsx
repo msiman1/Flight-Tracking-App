@@ -94,18 +94,6 @@ const Index: React.FC = () => {
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 justify-center">
-        {['N12345', 'N54321', 'N98765'].map((example) => (
-          <button
-            key={example}
-            onClick={() => handleExampleClick(example)}
-            className="px-3 py-1.5 bg-white/60 hover:bg-white/80 backdrop-blur-sm rounded-lg text-sm text-red-900 border border-white/30 transition-all hover:shadow-md"
-          >
-            {example}
-          </button>
-        ))}
-      </div>
-
       <button onClick={refreshState}>Refresh State</button>
     </div>
   );
