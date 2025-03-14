@@ -15,8 +15,8 @@ export const getTailToIcao = async (tailNumber: string): Promise<string> => {
 
   const data = await response.json();
   console.log('getTailToIcao data:', data);
-  // Attempt to extract the ICAO code from either data.icao24 or data.icao
-  const icao = data.icao24 || data.icao || '';
+  // Attempt to extract the ICAO code from various possible keys
+  const icao = data.icao24 || data.icao || data.ICAO || (data.response && (data.response.icao24 || data.response.icao || data.response.ICAO)) || '';
   if (!icao) {
     throw new Error('ICAO code not found in the response.');
   }
