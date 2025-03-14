@@ -57,11 +57,16 @@ const useAircraftData = () => {
       }
 
       const data = await response.json();
-      console.log("ADSBDB response data:", data);
+      console.log("ADSBDB response data:", JSON.stringify(data, null, 2));
       
-      if (!data.icao24) {
+      let icao24 = data.icao24 || data.icao || data.mode_s;
+      if (!icao24 && Array.isArray(data.aircraft) && data.aircraft.length > 0) {
+        icao24 = data.aircraft[0].icao24 || data.aircraft[0].icao || data.aircraft[0].mode_s;
+      }
+
+      if (!icao24) {
         toast.error('Invalid aircraft data', {
-          description: 'The aircraft data received is invalid.'
+          description: 'The aircraft data received is invalid. Check the console for details.'
         });
         setAircraftData({
           icao24: '',
@@ -76,7 +81,7 @@ const useAircraftData = () => {
 
       // Fetch current state from OpenSky
       const stateResponse = await fetch(
-        `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${data.icao24}`
+        `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${icao24}`
       );
 
       if (!stateResponse.ok) {
@@ -84,7 +89,7 @@ const useAircraftData = () => {
           description: 'Could not fetch current aircraft state.'
         });
         setAircraftData({
-          icao24: data.icao24,
+          icao24: icao24,
           tailNumber: tailNumber,
           currentState: null,
           isLoading: false,
@@ -101,7 +106,7 @@ const useAircraftData = () => {
           description: 'The aircraft is not currently being tracked.'
         });
         setAircraftData({
-          icao24: data.icao24,
+          icao24: icao24,
           tailNumber: tailNumber,
           currentState: null,
           isLoading: false,
@@ -135,7 +140,7 @@ const useAircraftData = () => {
       };
 
       setAircraftData({
-        icao24: data.icao24,
+        icao24: icao24,
         tailNumber: tailNumber,
         currentState,
         isLoading: false,
