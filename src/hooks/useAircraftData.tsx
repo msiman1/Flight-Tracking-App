@@ -21,6 +21,8 @@ const useAircraftData = () => {
   }
 
   const searchAircraft = async (tailNumber: string) => {
+    // Clear any existing error state
+    setAircraftData(prev => ({ ...prev, error: null }));
     setIsLoading(true);
 
     try {
