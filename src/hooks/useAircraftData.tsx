@@ -1,156 +1,157 @@
-import { useState, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import { AircraftData, StateVector } from '@/types/aircraft';
-import { ApiError, AircraftError } from '@/types/errors';
-import { getTailToIcao, getCurrentStateByIcao } from '@/services/aircraftApi';
 
-interface UseAircraftDataReturn {
-  aircraftData: AircraftData | null;
-  isLoading: boolean;
-  error: AircraftError | null;
-  searchAircraft: (tailNumber: string) => Promise<void>;
-  refreshState: () => Promise<void>;
-}
-
-const useAircraftData = (): UseAircraftDataReturn => {
-  const [aircraftData, setAircraftData] = useState<AircraftData | null>(null);
+const useAircraftData = () => {
+  const [aircraftData, setAircraftData] = useState<AircraftData>({
+    icao24: '',
+    tailNumber: '',
+    currentState: null,
+    isLoading: false,
+    error: null,
+    lastUpdated: null,
+  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [error, setError] = useState<AircraftError | null>(null);
-  const { toast } = useToast();
 
   // Check if environment variables are set
   if (!import.meta.env.VITE_ADSBDB_BASE_URL || !import.meta.env.VITE_OPENSKY_BASE_URL) {
-    console.error('Missing required environment variables');
-    toast({
-      title: 'Configuration Error',
-      description: 'Application is not properly configured. Please check environment variables.',
-      variant: 'destructive',
-      duration: 5000,
+    toast.error('Missing environment variables', {
+      description: 'Please check your environment configuration.'
     });
   }
 
   const searchAircraft = async (tailNumber: string) => {
-    if (!tailNumber || tailNumber.trim() === '') {
-      setError({
-        message: 'Please enter a valid tail number',
-        source: 'tailNumber'
-      });
-      toast({
-        title: 'Invalid Input',
-        description: 'Please enter a valid tail number',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
     setIsLoading(true);
-    setError(null);
-    
+
     try {
-      // 1. Convert tail number to ICAO24 code
-      let icao24: string;
+      const response = await fetch(`${import.meta.env.VITE_ADSBDB_BASE_URL}/aircraft/${tailNumber}`);
       
-      try {
-        icao24 = await getTailToIcao(tailNumber);
-      } catch (err) {
-        const apiError = err as ApiError;
-        setError({
-          message: apiError.message || `Could not find ICAO24 code for ${tailNumber}`,
-          source: 'icao24',
-          status: apiError.status
-        });
+      if (!response.ok) {
+        if (response.status === 404) {
+          toast.error('Aircraft not found', {
+            description: 'No aircraft found with this registration number.'
+          });
+          setAircraftData({
+            icao24: '',
+            tailNumber: tailNumber,
+            currentState: null,
+            isLoading: false,
+            error: 'Aircraft not found',
+            lastUpdated: null
+          });
+          return;
+        }
         
-        toast({
-          title: 'Aircraft Not Found',
-          description: `Could not find ICAO24 code for tail number ${tailNumber}`,
-          variant: 'destructive',
-          duration: 5000,
+        toast.error('Error fetching aircraft data', {
+          description: 'Please try again later.'
         });
-        
-        setIsLoading(false);
+        setAircraftData({
+          icao24: '',
+          tailNumber: tailNumber,
+          currentState: null,
+          isLoading: false,
+          error: 'Error fetching aircraft data',
+          lastUpdated: null
+        });
         return;
       }
+
+      const data = await response.json();
       
-      // 2. Get current state from OpenSky
-      try {
-        const stateVector = await getCurrentStateByIcao(icao24);
-        
+      if (!data.icao24) {
+        toast.error('Invalid aircraft data', {
+          description: 'The aircraft data received is invalid.'
+        });
         setAircraftData({
-          icao24: icao24,
-          tailNumber: tailNumber.toUpperCase(),
-          currentState: stateVector,
+          icao24: '',
+          tailNumber: tailNumber,
+          currentState: null,
+          isLoading: false,
+          error: 'Invalid aircraft data',
+          lastUpdated: null
+        });
+        return;
+      }
+
+      // Fetch current state from OpenSky
+      const stateResponse = await fetch(
+        `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${data.icao24}`
+      );
+
+      if (!stateResponse.ok) {
+        toast.error('Error fetching state data', {
+          description: 'Could not fetch current aircraft state.'
+        });
+        setAircraftData({
+          icao24: data.icao24,
+          tailNumber: tailNumber,
+          currentState: null,
+          isLoading: false,
+          error: 'Error fetching state data',
+          lastUpdated: null
+        });
+        return;
+      }
+
+      const stateData = await stateResponse.json();
+      
+      if (!stateData.states || stateData.states.length === 0) {
+        toast.warning('No current state data', {
+          description: 'The aircraft is not currently being tracked.'
+        });
+        setAircraftData({
+          icao24: data.icao24,
+          tailNumber: tailNumber,
+          currentState: null,
           isLoading: false,
           error: null,
           lastUpdated: Date.now()
         });
-        
-        if (!stateVector) {
-          toast({
-            title: 'Aircraft Not Active',
-            description: `No current flight data found for ${tailNumber}. The aircraft might not be in flight.`,
-            duration: 5000,
-          });
-        } else {
-          toast({
-            title: 'Aircraft Found',
-            description: `Retrieved current position for ${tailNumber}`,
-            duration: 3000,
-          });
-        }
-      } catch (err) {
-        const apiError = err as ApiError;
-        console.error("Error fetching state:", apiError);
-        
-        if (apiError.status === 429) {
-          setError({
-            message: 'Daily request limit reached. Try again tomorrow.',
-            source: 'state',
-            status: apiError.status
-          });
-          
-          toast({
-            title: 'Rate Limit Exceeded',
-            description: 'Daily request limit reached. Try again tomorrow.',
-            variant: 'destructive',
-            duration: 5000,
-          });
-        } else {
-          setError({
-            message: apiError.message || 'Failed to retrieve current aircraft data',
-            source: 'state',
-            status: apiError.status,
-            retry: true
-          });
-          
-          toast({
-            title: 'API Error',
-            description: `Failed to retrieve current position: ${apiError.message}`,
-            variant: 'destructive',
-            duration: 5000,
-          });
-        }
-        
-        // Still keep the aircraft data we found, just with null state
-        setAircraftData({
-          icao24: icao24,
-          tailNumber: tailNumber.toUpperCase(),
-          currentState: null,
-          isLoading: false,
-          error: apiError.message || 'Failed to retrieve current aircraft data',
-          lastUpdated: Date.now()
-        });
+        return;
       }
-    } catch (err) {
-      console.error('Unexpected error:', err);
-      setError({
-        message: 'An unexpected error occurred while processing your request',
-        source: 'general'
+
+      const state = stateData.states[0];
+      const currentState: StateVector = {
+        icao24: state[0],
+        callsign: state[1]?.trim() || null,
+        originCountry: state[2],
+        timePosition: state[3],
+        lastContact: state[4],
+        longitude: state[5],
+        latitude: state[6],
+        baroAltitude: state[7],
+        onGround: state[8],
+        velocity: state[9],
+        trueTrack: state[10],
+        verticalRate: state[11],
+        sensors: state[12],
+        geoAltitude: state[13],
+        squawk: state[14],
+        spi: state[15],
+        positionSource: state[16],
+        category: null,
+        timestamp: Date.now()
+      };
+
+      setAircraftData({
+        icao24: data.icao24,
+        tailNumber: tailNumber,
+        currentState,
+        isLoading: false,
+        error: null,
+        lastUpdated: Date.now()
       });
-      
-      toast({
-        title: 'Error',
-        description: 'An unexpected error occurred. Please try again.',
-        variant: 'destructive',
+    } catch (err) {
+      toast.error('Network error', {
+        description: 'Could not connect to the server.'
+      });
+      setAircraftData({
+        icao24: '',
+        tailNumber: tailNumber,
+        currentState: null,
+        isLoading: false,
+        error: 'Network error',
+        lastUpdated: null
       });
     } finally {
       setIsLoading(false);
@@ -158,83 +159,79 @@ const useAircraftData = (): UseAircraftDataReturn => {
   };
 
   const refreshState = async () => {
-    if (!aircraftData) return;
-    
+    if (!aircraftData.currentState?.icao24) {
+      toast.error('No aircraft selected', {
+        description: 'Please search for an aircraft first.'
+      });
+      return;
+    }
+
     setIsLoading(true);
-    setError(null);
-    
+
     try {
-      const stateVector = await getCurrentStateByIcao(aircraftData.icao24);
+      const response = await fetch(
+        `${import.meta.env.VITE_OPENSKY_BASE_URL}/states/all?icao24=${aircraftData.currentState.icao24}`
+      );
+
+      if (!response.ok) {
+        toast.error('Error refreshing state', {
+          description: 'Could not fetch updated aircraft state.'
+        });
+        return;
+      }
+
+      const data = await response.json();
       
-      setAircraftData({
-        ...aircraftData,
-        currentState: stateVector,
+      if (!data.states || data.states.length === 0) {
+        toast.warning('No current state data', {
+          description: 'The aircraft is not currently being tracked.'
+        });
+        setAircraftData(prev => ({
+          ...prev,
+          lastUpdated: Date.now()
+        }));
+        return;
+      }
+
+      const state = data.states[0];
+      const currentState: StateVector = {
+        icao24: state[0],
+        callsign: state[1]?.trim() || null,
+        originCountry: state[2],
+        timePosition: state[3],
+        lastContact: state[4],
+        longitude: state[5],
+        latitude: state[6],
+        baroAltitude: state[7],
+        onGround: state[8],
+        velocity: state[9],
+        trueTrack: state[10],
+        verticalRate: state[11],
+        sensors: state[12],
+        geoAltitude: state[13],
+        squawk: state[14],
+        spi: state[15],
+        positionSource: state[16],
+        category: null,
+        timestamp: Date.now()
+      };
+
+      setAircraftData(prev => ({
+        ...prev,
+        currentState,
         error: null,
         lastUpdated: Date.now()
-      });
-      
-      if (!stateVector) {
-        toast({
-          title: 'Aircraft Not Active',
-          description: `No current flight data found for ${aircraftData.tailNumber}. The aircraft might not be in flight.`,
-          duration: 5000,
-        });
-      } else {
-        toast({
-          title: 'Data Refreshed',
-          description: `Updated position for ${aircraftData.tailNumber}`,
-          duration: 3000,
-        });
-      }
+      }));
     } catch (err) {
-      const apiError = err as ApiError;
-      
-      if (apiError.status === 429) {
-        setError({
-          message: 'Daily request limit reached. Try again tomorrow.',
-          source: 'state',
-          status: apiError.status
-        });
-        
-        toast({
-          title: 'Rate Limit Exceeded',
-          description: 'Daily request limit reached. Try again tomorrow.',
-          variant: 'destructive',
-          duration: 5000,
-        });
-      } else {
-        setError({
-          message: apiError.message || 'Failed to refresh aircraft data',
-          source: 'state',
-          status: apiError.status,
-          retry: true
-        });
-        
-        toast({
-          title: 'Refresh Error',
-          description: `Failed to update position: ${apiError.message}`,
-          variant: 'destructive',
-          duration: 5000,
-        });
-      }
-      
-      setAircraftData({
-        ...aircraftData,
-        error: apiError.message || 'Failed to refresh aircraft data',
-        lastUpdated: Date.now()
+      toast.error('Network error', {
+        description: 'Could not connect to the server.'
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  return {
-    aircraftData,
-    isLoading,
-    error,
-    searchAircraft,
-    refreshState
-  };
+  return { aircraftData, isLoading, searchAircraft, refreshState };
 };
 
 export default useAircraftData;
