@@ -146,14 +146,16 @@ const useAircraftData = () => {
         timestamp: Date.now()
       };
 
-      setAircraftData({
+      const updatedData = {
         icao24: icao24,
         tailNumber: tailNumber,
         currentState,
         isLoading: false,
         error: null,
         lastUpdated: Date.now()
-      });
+      };
+      console.log("Final aircraft data set to:", updatedData);
+      setAircraftData(updatedData);
     } catch (err) {
       toast.error('Network error', {
         description: 'Could not connect to the server.'
