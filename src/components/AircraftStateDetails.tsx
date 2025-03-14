@@ -11,7 +11,7 @@ import {
   Flag,
   Clock
 } from 'lucide-react';
-import { formatAltitude, formatSpeed, formatDirection, formatRelativeTime } from '@/utils/formatters';
+import { formatAltitude, formatSpeed, formatDirection } from '@/utils/formatters';
 
 interface AircraftStateDetailsProps {
   state: StateVector;

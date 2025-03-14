@@ -1,6 +1,6 @@
 import React from 'react';
-import { Plane, Info, Navigation, MapPin, RotateCw, RefreshCw, AlertCircle } from 'lucide-react';
-import { formatDistance, formatRelativeTime, formatAltitude, formatSpeed, formatDirection } from '@/utils/formatters';
+import { Plane, Info, Navigation, MapPin, RotateCw } from 'lucide-react';
+import { formatRelativeTime, formatAltitude, formatSpeed, formatDirection } from '@/utils/formatters';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StateVector } from '@/types/aircraft';
