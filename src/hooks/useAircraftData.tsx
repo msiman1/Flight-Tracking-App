@@ -60,9 +60,16 @@ const useAircraftData = () => {
       console.log("ADSBDB response data:", JSON.stringify(data, null, 2));
       
       let icao24 = data.icao24 || data.icao || data.mode_s;
-      if (!icao24 && Array.isArray(data.aircraft) && data.aircraft.length > 0) {
-        icao24 = data.aircraft[0].icao24 || data.aircraft[0].icao || data.aircraft[0].mode_s;
+      if (!icao24 && data.response && data.response.aircraft) {
+        const aircraft = data.response.aircraft;
+        if (Array.isArray(aircraft) && aircraft.length > 0) {
+          icao24 = aircraft[0].icao24 || aircraft[0].icao || aircraft[0].mode_s;
+        } else if (typeof aircraft === 'object') {
+          icao24 = aircraft.icao24 || aircraft.icao || aircraft.mode_s;
+        }
       }
+
+      console.log("Extracted ICAO code:", icao24);
 
       if (!icao24) {
         toast.error('Invalid aircraft data', {
