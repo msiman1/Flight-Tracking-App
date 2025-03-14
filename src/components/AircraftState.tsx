@@ -75,7 +75,7 @@ const AircraftState: React.FC<AircraftStateProps> = ({
       </CardHeader>
       
       <CardContent className="space-y-4">
-        {error && error.source === 'state' && (
+        {error && (error.source === 'opensky' || error.source === 'adsbdb') && (
           <Alert variant="destructive" className="mb-4">
             <Info className="h-4 w-4" />
             <AlertTitle>Error Retrieving Data</AlertTitle>
@@ -170,7 +170,7 @@ const AircraftState: React.FC<AircraftStateProps> = ({
       
       <CardFooter className="flex items-center justify-between pt-2 border-t border-gray-100">
         <div className="text-xs text-muted-foreground">
-          Last updated {formatRelativeTime(lastUpdated)}
+          Last updated {lastUpdated ? formatRelativeTime(lastUpdated.getTime()) : 'Never'}
         </div>
         <Button 
           variant="outline" 
