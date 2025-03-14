@@ -1,27 +1,24 @@
-
 import React from 'react';
-import { Plane, Info, Navigation, MapPin, RotateCw } from 'lucide-react';
+import { Plane, Info, Navigation, MapPin, RotateCw, RefreshCw, AlertCircle } from 'lucide-react';
 import { formatDistance, formatRelativeTime, formatAltitude, formatSpeed, formatDirection } from '@/utils/formatters';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { StateVector } from '@/types/aircraft';
+import { ApiError } from '@/types/errors';
 import { cn } from '@/lib/utils';
-import { AircraftError } from '@/types/errors';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface AircraftStateProps {
   tailNumber: string;
-  icao24: string;
   state: StateVector | null;
-  lastUpdated: number;
-  isLoading: boolean;
-  error: AircraftError | null;
-  onRefresh: () => void;
+  lastUpdated: Date | null;
+  isLoading?: boolean;
+  error?: ApiError | null;
+  onRefresh?: () => void;
 }
 
 const AircraftState: React.FC<AircraftStateProps> = ({
   tailNumber,
-  icao24,
   state,
   lastUpdated,
   isLoading,

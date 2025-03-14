@@ -15,15 +15,15 @@ import { formatAltitude, formatSpeed, formatDirection, formatRelativeTime } from
 
 interface AircraftStateDetailsProps {
   state: StateVector;
-  lastUpdated: number;
   isCached?: boolean;
 }
 
-const AircraftStateDetails: React.FC<AircraftStateDetailsProps> = ({
+export function AircraftStateDetails({
   state,
-  lastUpdated,
   isCached = false
-}) => {
+}: AircraftStateDetailsProps) {
+  const lastContactTime = state.lastContact ? new Date(state.lastContact * 1000).toLocaleString() : 'Unknown';
+
   return (
     <Card className="bg-white/70 border border-white/50">
       <CardHeader className="pb-2">
@@ -104,7 +104,7 @@ const AircraftStateDetails: React.FC<AircraftStateDetailsProps> = ({
             <div>
               <div className="text-sm text-gray-500">Last Contact</div>
               <div className="font-medium">
-                {formatRelativeTime(state.lastContact * 1000)}
+                {lastContactTime}
               </div>
             </div>
           </div>
@@ -130,6 +130,6 @@ const AircraftStateDetails: React.FC<AircraftStateDetailsProps> = ({
       </CardContent>
     </Card>
   );
-};
+}
 
 export default AircraftStateDetails; 
