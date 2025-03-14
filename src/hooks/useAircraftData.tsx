@@ -72,6 +72,7 @@ const useAircraftData = (): UseAircraftDataReturn => {
       
       setAircraftData(newData);
     } catch (err: any) {
+      console.error('Error in searchAircraft:', err);
       setError(err.message || 'An error occurred while fetching aircraft data.');
       setAircraftData(prev => ({ ...prev, error: err.message || 'Error occurred' }));
     } finally {

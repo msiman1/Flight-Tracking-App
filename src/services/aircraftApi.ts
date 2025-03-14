@@ -3,15 +3,20 @@ import { StateVector } from "@/types/aircraft";
 // Function to get the ICAO code from a tail number using the ADSBDB API
 export const getTailToIcao = async (tailNumber: string): Promise<string> => {
   const url = `${import.meta.env.VITE_ADSBDB_BASE_URL}/aircraft/${tailNumber}`;
-
-  const response = await fetch(url);
+  console.log('getTailToIcao fetching URL:', url);
+  const response = await Promise.race([
+    fetch(url),
+    new Promise<Response>((_, reject) => setTimeout(() => reject(new Error('Timeout fetching ICAO code')), 5000))
+  ]);
+  console.log('getTailToIcao response status:', response.status);
   if (!response.ok) {
     throw new Error(`Failed to fetch ICAO code: ${response.statusText}`);
   }
 
   const data = await response.json();
-  // Assuming the ICAO code is returned in data.icao24, adjust as necessary
-  const icao = data.icao24 || '';
+  console.log('getTailToIcao data:', data);
+  // Attempt to extract the ICAO code from either data.icao24 or data.icao
+  const icao = data.icao24 || data.icao || '';
   if (!icao) {
     throw new Error('ICAO code not found in the response.');
   }
