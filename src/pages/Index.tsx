@@ -16,6 +16,7 @@ const Index: React.FC = () => {
   const { aircraftData, isLoading, searchAircraft, refreshState } = useAircraftData();
 
   const handleSearch = (e: React.FormEvent) => {
+    console.log('handleSearch triggered with searchTerm:', searchTerm);
     e.preventDefault();
     if (searchTerm.trim()) {
       searchAircraft(searchTerm.trim().toUpperCase());

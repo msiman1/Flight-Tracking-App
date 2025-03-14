@@ -35,8 +35,11 @@ const useAircraftData = (): UseAircraftDataReturn => {
   }
 
   const searchAircraft = useCallback(async (tailNumber: string) => {
+    console.log('searchAircraft called with tailNumber:', tailNumber);
+    toast.info(`Searching for ${tailNumber}...`);
     setLoading(true);
     setError(null);
+    console.log('Fetching ICAO code for tailNumber:', tailNumber);
     try {
       // Fetch the ICAO code using the tail number
       const icao = await getTailToIcao(tailNumber);
@@ -50,6 +53,7 @@ const useAircraftData = (): UseAircraftDataReturn => {
       const currentState: StateVector | null = await getCurrentStateByIcao(icao);
       if (!currentState) {
         setError('No current state data available.');
+        toast.error('The aircraft is not currently being tracked.');
       }
 
       const newData: AircraftData = {
@@ -60,6 +64,8 @@ const useAircraftData = (): UseAircraftDataReturn => {
         error: null,
         lastUpdated: Date.now()
       };
+      
+      console.log('New Aircraft Data set to:', newData);
       
       setAircraftData(newData);
     } catch (err: any) {
