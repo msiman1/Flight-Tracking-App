@@ -57,6 +57,7 @@ const useAircraftData = () => {
       }
 
       const data = await response.json();
+      console.log("ADSBDB response data:", data);
       
       if (!data.icao24) {
         toast.error('Invalid aircraft data', {
