@@ -43,6 +43,8 @@ const useAircraftData = (): UseAircraftDataReturn => {
     try {
       // Fetch the ICAO code using the tail number
       const icao = await getTailToIcao(tailNumber);
+      console.log('ICAO code received:', icao);
+      console.log('Fetching current state for ICAO:', icao);
       if (!icao) {
         setError('ICAO code not found for the provided tail number.');
         setAircraftData(prev => ({ ...prev, tailNumber, error: 'ICAO code not found.' }));
@@ -51,6 +53,7 @@ const useAircraftData = (): UseAircraftDataReturn => {
       
       // Fetch the current state using the ICAO code
       const currentState: StateVector | null = await getCurrentStateByIcao(icao);
+      console.log('Current state received:', currentState);
       if (!currentState) {
         setError('No current state data available.');
         toast.error('The aircraft is not currently being tracked.');
