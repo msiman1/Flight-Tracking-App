@@ -7,8 +7,12 @@ import { Configuration, OpenAIApi, ChatCompletionRequestMessage, ChatCompletionR
 
 // Initialize OpenAI configuration with your API key from environment variables
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
 });
+
+if (!configuration.apiKey) {
+  console.error('OpenAI API key is not configured');
+}
 
 const openai = new OpenAIApi(configuration);
 
@@ -18,8 +22,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end('Method Not Allowed');
   }
 
+  if (!configuration.apiKey) {
+    return res.status(500).json({ error: 'OpenAI API key is not configured' });
+  }
+
   try {
     const { prompt, conversation } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
     
     // Build a messages array for chat completions
     const messages: ChatCompletionRequestMessage[] = [
@@ -43,9 +55,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       messages,
     });
 
+    if (!completion.data.choices[0].message) {
+      throw new Error('No response from OpenAI');
+    }
+
     res.status(200).json({ response: completion.data.choices[0].message });
   } catch (error: any) {
     console.error('OpenAI API error:', error.response ? error.response.data : error.message);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ 
+      error: error.response?.data?.error?.message || error.message || 'An error occurred while processing your request'
+    });
   }
 } 
