@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AircraftData } from '@/types/aircraft';
-import { X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2, MessageCircle } from 'lucide-react';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
@@ -75,7 +75,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
         {isOpen ? (
           <X className="h-6 w-6 text-white" />
         ) : (
-          <span className="text-2xl">😈</span>
+          <MessageCircle className="h-6 w-6 text-white" />
         )}
       </button>
 
@@ -86,7 +86,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
         <div className="rounded-lg border bg-white shadow-xl flex flex-col h-[600px]">
           {/* Chat Header */}
           <div className="p-4 border-b bg-red-500 text-white rounded-t-lg flex justify-between items-center">
-            <h2 className="font-semibold">Chat with Mario</h2>
+            <h2 className="font-semibold">Flight Assistant</h2>
             {error && (
               <div className="text-red-200 text-sm">
                 Error: {error}
