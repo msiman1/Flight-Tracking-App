@@ -26,11 +26,17 @@ const openai = new OpenAIApi(configuration);
 // Helper function to create system message based on aircraft data
 function createSystemMessage(aircraftData) {
   if (!aircraftData) {
-    return 'You are an assistant that helps users understand aircraft data and provides insights.';
+    return 'You are an assistant that helps users understand aircraft data and provides insights. When responding, always convert and display: altitudes in feet (ft), speeds in knots, and locations as city/country names rather than coordinates.';
   }
 
   const state = aircraftData.currentState;
-  let context = `You are an assistant that provides insights about aircraft data. Currently tracking aircraft with tail number ${aircraftData.tailNumber} and ICAO24 code ${aircraftData.icao24}.`;
+  let context = `You are an assistant that provides insights about aircraft data. Currently tracking aircraft with tail number ${aircraftData.tailNumber} and ICAO24 code ${aircraftData.icao24}.
+
+Important: In all your responses:
+1. ALWAYS convert and show altitudes in feet (ft) - multiply meters by 3.28084
+2. ALWAYS convert and show speeds in knots - multiply m/s by 1.94384
+3. When asked about location, translate the coordinates to the nearest city and country name
+4. Keep responses concise and focused`;
 
   if (state) {
     context += `\n\nCurrent flight data:
@@ -43,7 +49,7 @@ function createSystemMessage(aircraftData) {
 - Origin Country: ${state.originCountry}`;
   }
 
-  context += "\n\nProvide concise, accurate information about the aircraft's current status, location, and relevant insights when asked.";
+  context += "\n\nProvide concise, accurate information about the aircraft's current status, location, and relevant insights when asked. Remember to ALWAYS convert units in your responses: use feet for altitude, knots for speed, and city/country names for locations.";
   return context;
 }
 
