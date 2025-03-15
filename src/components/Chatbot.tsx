@@ -13,7 +13,6 @@ interface ChatbotProps {
 export default function Chatbot({ aircraftData }: ChatbotProps) {
   const [input, setInput] = useState('');
   const [conversation, setConversation] = useState<ChatMessage[]>([]);
-  const [response, setResponse] = useState<ChatMessage | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +42,6 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
       
       const data = await res.json();
       if (data.response) {
-        setResponse(data.response);
         // Update the conversation with the assistant's reply
         setConversation([...updatedConversation, data.response]);
       } else {
@@ -52,7 +50,10 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
     } catch (error) {
       console.error('Chat error:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while processing your request');
-      setResponse({ role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' });
+      setConversation([...updatedConversation, { 
+        role: 'assistant', 
+        content: 'Sorry, I encountered an error. Please try again.' 
+      }]);
     }
     setInput('');
     setLoading(false);
