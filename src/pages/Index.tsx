@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plane, Loader2, RotateCw } from 'lucide-react';
+import { Plane, RotateCw } from 'lucide-react';
 import useAircraftData from '@/hooks/useAircraftData';
 import AircraftState from '@/components/AircraftState';
 import AircraftStateDetails from '@/components/AircraftStateDetails';
