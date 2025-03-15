@@ -85,7 +85,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
       }`}>
         <div className="rounded-lg border bg-white shadow-xl flex flex-col h-[600px]">
           {/* Chat Header */}
-          <div className="p-4 border-b bg-blue-500 text-white rounded-t-lg flex justify-between items-center">
+          <div className="p-4 border-b bg-red-500 text-white rounded-t-lg flex justify-between items-center">
             <h2 className="font-semibold">Chat with Mario</h2>
             {error && (
               <div className="text-red-200 text-sm">
@@ -110,7 +110,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
               >
                 <div className={`max-w-[80%] p-3 rounded-lg ${
                   msg.role === 'user' 
-                    ? 'bg-blue-500 text-white rounded-br-none' 
+                    ? 'bg-red-500 text-white rounded-br-none' 
                     : 'bg-gray-100 text-gray-800 rounded-bl-none'
                 }`}>
                   {msg.content}
@@ -120,7 +120,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
             {loading && (
               <div className="flex justify-start">
                 <div className="bg-gray-100 p-3 rounded-lg rounded-bl-none">
-                  <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                  <Loader2 className="h-5 w-5 animate-spin text-red-500" />
                 </div>
               </div>
             )}
@@ -136,14 +136,14 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
                 placeholder={aircraftData 
                   ? "Type your message..." 
                   : "Search for an aircraft first..."}
-                className="flex-1 px-3 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 px-3 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
                 disabled={!aircraftData || loading}
                 required
               />
               <button 
                 type="submit" 
                 disabled={loading || !aircraftData || !input.trim()} 
-                className="p-2 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-full bg-red-500 text-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
