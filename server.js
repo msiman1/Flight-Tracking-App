@@ -23,6 +23,30 @@ if (!configuration.apiKey) {
 
 const openai = new OpenAIApi(configuration);
 
+// Helper function to create system message based on aircraft data
+function createSystemMessage(aircraftData) {
+  if (!aircraftData) {
+    return 'You are an assistant that helps users understand aircraft data and provides insights.';
+  }
+
+  const state = aircraftData.currentState;
+  let context = `You are an assistant that provides insights about aircraft data. Currently tracking aircraft with tail number ${aircraftData.tailNumber} and ICAO24 code ${aircraftData.icao24}.`;
+
+  if (state) {
+    context += `\n\nCurrent flight data:
+- Location: ${state.latitude}°N, ${state.longitude}°E
+- Altitude: ${state.baroAltitude || state.geoAltitude || 'Unknown'} meters
+- Ground Speed: ${state.velocity || 'Unknown'} m/s
+- Heading: ${state.trueTrack || 'Unknown'}°
+- On Ground: ${state.onGround ? 'Yes' : 'No'}
+- Last Contact: ${new Date(state.lastContact * 1000).toISOString()}
+- Origin Country: ${state.originCountry}`;
+  }
+
+  context += "\n\nProvide concise, accurate information about the aircraft's current status, location, and relevant insights when asked.";
+  return context;
+}
+
 // OpenAI chat endpoint
 app.post('/api/openaiChat', async (req, res) => {
   if (!configuration.apiKey) {
@@ -30,7 +54,7 @@ app.post('/api/openaiChat', async (req, res) => {
   }
 
   try {
-    const { prompt, conversation } = req.body;
+    const { prompt, conversation, aircraftData } = req.body;
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -40,7 +64,7 @@ app.post('/api/openaiChat', async (req, res) => {
     const messages = [
       {
         role: 'system',
-        content: 'You are an assistant that summarizes aircraft data and provides insights.',
+        content: createSystemMessage(aircraftData),
       },
     ];
 
@@ -56,6 +80,8 @@ app.post('/api/openaiChat', async (req, res) => {
     const completion = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages,
+      temperature: 0.7,
+      max_tokens: 500,
     });
 
     if (!completion.data.choices[0].message) {

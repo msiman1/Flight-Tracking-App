@@ -92,7 +92,7 @@ const Index: React.FC = () => {
       )}
 
       <button onClick={refreshState}>Refresh State</button>
-      <Chatbot />
+      <Chatbot aircraftData={aircraftData} />
     </div>
   );
 };
