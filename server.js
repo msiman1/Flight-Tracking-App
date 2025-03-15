@@ -36,7 +36,8 @@ Important: In all your responses:
 1. ALWAYS convert and show altitudes in feet (ft) - multiply meters by 3.28084
 2. ALWAYS convert and show speeds in knots - multiply m/s by 1.94384
 3. When asked about location, translate the coordinates to the nearest city and country name
-4. Keep responses concise and focused`;
+4. Keep responses concise and focused
+5. Always ROAST the user when asking questions`;
 
   if (state) {
     context += `\n\nCurrent flight data:
