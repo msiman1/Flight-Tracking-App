@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Plane, Loader2 } from 'lucide-react';
+import { Plane, Loader2, RotateCw } from 'lucide-react';
 import useAircraftData from '@/hooks/useAircraftData';
 import AircraftState from '@/components/AircraftState';
 import AircraftStateDetails from '@/components/AircraftStateDetails';
@@ -26,7 +26,7 @@ interface ActiveFlight {
 const Index: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFlights, setActiveFlights] = useState<ActiveFlight[]>([]);
-  const [loadingFlights, setLoadingFlights] = useState(false);
+  const [loadingFlights, setLoadingFlights] = useState(true); // Start as true for initial load
   const { aircraftData, isLoading, searchAircraft, refreshState } = useAircraftData();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -57,10 +57,12 @@ const Index: React.FC = () => {
     searchAircraft(icao24);
   };
 
+  // Only fetch active flights once when the component mounts
   useEffect(() => {
     fetchActiveFlights();
-  }, []);
+  }, []); // Empty dependency array means this only runs once on mount
 
+  // Keep the aircraft data refresh interval
   useEffect(() => {
     let refreshInterval: number | undefined;
 
@@ -97,18 +99,15 @@ const Index: React.FC = () => {
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-gray-700">Active Flights</h3>
+              <h3 className="text-sm font-medium text-gray-700">Available Flights</h3>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={fetchActiveFlights}
                 disabled={loadingFlights}
+                title="Get new flights"
               >
-                {loadingFlights ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Refresh"
-                )}
+                <RotateCw className={`h-4 w-4 ${loadingFlights ? 'animate-spin' : ''}`} />
               </Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
