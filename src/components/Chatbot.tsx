@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AircraftData } from '@/types/aircraft';
-import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
+import { X, Send, Loader2 } from 'lucide-react';
 
 interface ChatMessage {
   role: 'user' | 'assistant' | 'system';
