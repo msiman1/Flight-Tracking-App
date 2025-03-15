@@ -1,5 +1,5 @@
 {
-  "name": "tail-to-icao-flights",
+  "name": "flight-tracker-app",
   "private": true,
   "version": "0.1.0",
   "type": "module",
