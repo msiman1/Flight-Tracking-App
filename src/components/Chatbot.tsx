@@ -68,7 +68,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
       {/* Chat Toggle Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-4 right-4 p-4 rounded-full shadow-lg transition-colors duration-200 ${
+        className={`fixed bottom-4 right-4 p-4 rounded-full shadow-lg transition-colors duration-200 z-50 ${
           isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
         }`}
       >
@@ -80,7 +80,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
       </button>
 
       {/* Chat Window */}
-      <div className={`fixed right-4 bottom-20 w-96 transition-all duration-300 transform ${
+      <div className={`fixed right-4 bottom-20 w-96 transition-all duration-300 transform z-50 ${
         isOpen ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}>
         <div className="rounded-lg border bg-white shadow-xl flex flex-col h-[600px]">
