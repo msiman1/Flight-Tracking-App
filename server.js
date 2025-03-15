@@ -1,49 +1,81 @@
 import express from 'express';
+import { Configuration, OpenAIApi } from 'openai';
+import cors from 'cors';
 import dotenv from 'dotenv';
 
 dotenv.config();
-console.log("OPENAI_API_KEY loaded:", process.env.OPENAI_API_KEY);
-
-import openai from 'openai';
-const { Configuration, OpenAIApi } = openai;
 
 const app = express();
-const port = 3001;
+const port = process.env.PORT || 3001;
 
-// Initialize OpenAI configuration with your API key from environment variables
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const openaiInstance = new OpenAIApi(configuration);
-
+// Enable CORS
+app.use(cors());
 app.use(express.json());
 
-app.post('/api/openaiChat', async (req, res) => {
-  const { prompt, conversation } = req.body;
-  // Build a messages array for chat completions
-  const messages = [
-    { role: 'system', content: 'You are an assistant that summarizes aircraft data and provides insights.' },
-  ];
+// Initialize OpenAI configuration
+const configuration = new Configuration({
+  apiKey: process.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+});
 
-  if (conversation && Array.isArray(conversation)) {
-    messages.push(...conversation);
+if (!configuration.apiKey) {
+  console.error('OpenAI API key is not configured');
+}
+
+const openai = new OpenAIApi(configuration);
+
+// OpenAI chat endpoint
+app.post('/api/openaiChat', async (req, res) => {
+  if (!configuration.apiKey) {
+    return res.status(500).json({ error: 'OpenAI API key is not configured' });
   }
 
-  messages.push({ role: 'user', content: prompt });
-
   try {
-    const completion = await openaiInstance.createChatCompletion({
+    const { prompt, conversation } = req.body;
+    
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+    
+    // Build messages array for chat completions
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are an assistant that summarizes aircraft data and provides insights.',
+      },
+    ];
+
+    if (conversation && Array.isArray(conversation)) {
+      messages.push(...conversation);
+    }
+
+    messages.push({
+      role: 'user',
+      content: prompt,
+    });
+
+    const completion = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages,
     });
 
-    const responseMessage = completion.data.choices[0].message;
-    res.json({ response: responseMessage });
+    if (!completion.data.choices[0].message) {
+      throw new Error('No response from OpenAI');
+    }
+
+    res.json({ response: completion.data.choices[0].message });
   } catch (error) {
-    console.error("OpenAI API error:", error.response ? error.response.data : error.message);
-    res.status(500).json({ error: error.message });
+    console.error('OpenAI API error:', error.response?.data || error.message);
+    res.status(500).json({ 
+      error: error.response?.data?.error?.message || error.message || 'An error occurred while processing your request'
+    });
   }
 });
 
-app.listen(port, () => console.log(`API server listening on port ${port}`)); 
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('dist'));
+}
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+}); 
