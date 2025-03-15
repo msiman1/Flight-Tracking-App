@@ -10,6 +10,7 @@ import AircraftStateDetails from '@/components/AircraftStateDetails';
 import AircraftMap from '@/components/AircraftMap';
 import { ApiError } from '@/types/errors';
 import Dashboard from '@/components/Dashboard';
+import Chatbot from '@/components/Chatbot';
 
 const Index: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,6 +92,7 @@ const Index: React.FC = () => {
       )}
 
       <button onClick={refreshState}>Refresh State</button>
+      <Chatbot />
     </div>
   );
 };

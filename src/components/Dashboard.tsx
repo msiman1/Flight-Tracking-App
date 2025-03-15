@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { AircraftData } from '@/types/aircraft';
 
 interface DashboardProps {
@@ -7,6 +7,34 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const { tailNumber, currentState, isLoading, error, lastUpdated } = data;
+  const [explanation, setExplanation] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log('Dashboard received data:', data);
+  }, [data]);
+
+  useEffect(() => {
+    async function fetchExplanation() {
+      try {
+        const res = await fetch('/api/explain', { 
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ data }) 
+        });
+        if (res.ok) {
+          const json = await res.json();
+          setExplanation(json.explanation);
+        } else {
+          console.error('Failed to fetch explanation.');
+        }
+      } catch (error) {
+        console.error('Error fetching explanation:', error);
+      }
+    }
+    if (!isLoading && currentState && !error) {
+      fetchExplanation();
+    }
+  }, [data, isLoading, currentState, error]);
 
   const displayValue = (value: any) => (value === null || value === undefined ? 'N/A' : value);
 
@@ -37,6 +65,18 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             <p>No current state data available.</p>
           )}
           {lastUpdated && <p><small>Last updated: {new Date(lastUpdated).toLocaleTimeString()}</small></p>}
+          {!explanation && !isLoading && currentState && (
+            <div className="explanation">
+              <h3>Explanation</h3>
+              <p>Loading explanation...</p>
+            </div>
+          )}
+          {explanation && (
+            <div className="explanation">
+              <h3>Explanation</h3>
+              <p>{explanation}</p>
+            </div>
+          )}
         </>
       )}
     </div>
