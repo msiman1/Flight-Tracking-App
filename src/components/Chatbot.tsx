@@ -69,13 +69,13 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed bottom-4 right-4 p-4 rounded-full shadow-lg transition-colors duration-200 z-[9999] ${
-          isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
+          isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-red-500 hover:bg-red-600'
         }`}
       >
         {isOpen ? (
           <X className="h-6 w-6 text-white" />
         ) : (
-          <MessageCircle className="h-6 w-6 text-white" />
+          <span className="text-2xl">😈</span>
         )}
       </button>
 
@@ -86,7 +86,7 @@ export default function Chatbot({ aircraftData }: ChatbotProps) {
         <div className="rounded-lg border bg-white shadow-xl flex flex-col h-[600px]">
           {/* Chat Header */}
           <div className="p-4 border-b bg-blue-500 text-white rounded-t-lg flex justify-between items-center">
-            <h2 className="font-semibold">Aircraft Assistant</h2>
+            <h2 className="font-semibold">Chat with Mario</h2>
             {error && (
               <div className="text-red-200 text-sm">
                 Error: {error}

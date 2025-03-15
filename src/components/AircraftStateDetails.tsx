@@ -28,7 +28,7 @@ export function AircraftStateDetails({
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Plane className="h-5 w-5 text-blue-600" />
+            <Plane className="h-5 w-5 text-red-600" />
             <CardTitle className="text-lg">Technical Details</CardTitle>
           </div>
           {isCached && (
@@ -42,7 +42,7 @@ export function AircraftStateDetails({
         {/* Flight Parameters */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Gauge className="h-4 w-4 text-blue-600" />
+            <Gauge className="h-4 w-4 text-red-600" />
             <div>
               <div className="text-sm text-gray-500">Ground Speed</div>
               <div className="font-medium">
@@ -52,7 +52,7 @@ export function AircraftStateDetails({
           </div>
 
           <div className="flex items-center gap-2">
-            <Navigation2 className="h-4 w-4 text-blue-600" />
+            <Navigation2 className="h-4 w-4 text-red-600" />
             <div>
               <div className="text-sm text-gray-500">True Track</div>
               <div className="font-medium">
@@ -79,7 +79,7 @@ export function AircraftStateDetails({
         {/* Technical Details */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <Radio className="h-4 w-4 text-blue-600" />
+            <Radio className="h-4 w-4 text-red-600" />
             <div>
               <div className="text-sm text-gray-500">Squawk</div>
               <div className="font-medium">
@@ -89,7 +89,7 @@ export function AircraftStateDetails({
           </div>
 
           <div className="flex items-center gap-2">
-            <Flag className="h-4 w-4 text-blue-600" />
+            <Flag className="h-4 w-4 text-red-600" />
             <div>
               <div className="text-sm text-gray-500">Origin Country</div>
               <div className="font-medium">
@@ -99,7 +99,7 @@ export function AircraftStateDetails({
           </div>
 
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-blue-600" />
+            <Clock className="h-4 w-4 text-red-600" />
             <div>
               <div className="text-sm text-gray-500">Last Contact</div>
               <div className="font-medium">
