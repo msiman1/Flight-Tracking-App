@@ -8,7 +8,7 @@ interface UseAircraftDataReturn {
   aircraftData: AircraftData;
   isLoading: boolean;
   error: string | null;
-  searchAircraft: (tailNumber: string) => Promise<void>;
+  searchAircraft: (query: string) => Promise<void>;
   refreshState: () => void;
 }
 
@@ -34,26 +34,39 @@ const useAircraftData = (): UseAircraftDataReturn => {
     });
   }
 
-  const searchAircraft = useCallback(async (tailNumber: string) => {
-    console.log('searchAircraft called with tailNumber:', tailNumber);
-    toast.info(`Searching for ${tailNumber}...`);
+  const searchAircraft = useCallback(async (query: string) => {
+    console.log('searchAircraft called with query:', query);
+    toast.info(`Searching for ${query}...`);
     setLoading(true);
     setError(null);
-    console.log('Fetching ICAO code for tailNumber:', tailNumber);
+
     try {
-      // Fetch the ICAO code using the tail number
-      const icao = await getTailToIcao(tailNumber);
-      console.log('ICAO code received:', icao);
-      console.log('Fetching current state for ICAO:', icao);
+      let icao: string;
+      let tailNumber: string = query;
+
+      // Check if the query is already an ICAO24 code (24-bit hex)
+      const isIcao24 = /^[0-9a-f]{6}$/i.test(query.toLowerCase());
+
+      if (isIcao24) {
+        icao = query.toLowerCase();
+      } else {
+        // If not an ICAO24, treat it as a tail number and fetch the ICAO
+        console.log('Fetching ICAO code for tailNumber:', query);
+        icao = await getTailToIcao(query);
+        console.log('ICAO code received:', icao);
+      }
+
       if (!icao) {
-        setError('ICAO code not found for the provided tail number.');
-        setAircraftData(prev => ({ ...prev, tailNumber, error: 'ICAO code not found.' }));
+        setError('ICAO code not found for the provided identifier.');
+        setAircraftData(prev => ({ ...prev, tailNumber: query, error: 'ICAO code not found.' }));
         return;
       }
       
       // Fetch the current state using the ICAO code
+      console.log('Fetching current state for ICAO:', icao);
       const currentState: StateVector | null = await getCurrentStateByIcao(icao);
       console.log('Current state received:', currentState);
+      
       if (!currentState) {
         setError('No current state data available.');
         toast.error('The aircraft is not currently being tracked.');
@@ -61,7 +74,7 @@ const useAircraftData = (): UseAircraftDataReturn => {
 
       const newData: AircraftData = {
         icao24: icao,
-        tailNumber,
+        tailNumber: isIcao24 ? currentState?.callsign || icao : tailNumber,
         currentState,
         isLoading: false,
         error: null,
@@ -81,10 +94,10 @@ const useAircraftData = (): UseAircraftDataReturn => {
   }, []);
 
   const refreshState = useCallback(() => {
-    if (aircraftData.tailNumber) {
-      searchAircraft(aircraftData.tailNumber);
+    if (aircraftData.icao24) {
+      searchAircraft(aircraftData.icao24);
     }
-  }, [aircraftData.tailNumber, searchAircraft]);
+  }, [aircraftData.icao24, searchAircraft]);
 
   // Combine local state with aircraftData state
   const combinedData: AircraftData = {

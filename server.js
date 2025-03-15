@@ -23,6 +23,16 @@ if (!configuration.apiKey) {
 
 const openai = new OpenAIApi(configuration);
 
+// Helper function to delay execution
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Rate limiting settings for OpenSky API
+const RATE_LIMIT_WINDOW = 10000; // 10 seconds
+const MAX_RETRIES = 3;
+const INITIAL_BACKOFF = 2000; // 2 seconds
+
+let lastOpenSkyCall = 0;
+
 // Helper function to create system message based on aircraft data
 function createSystemMessage(aircraftData) {
   if (!aircraftData) {
@@ -53,6 +63,78 @@ Important: In all your responses:
   context += "\n\nProvide concise, accurate information about the aircraft's current status, location, and relevant insights when asked. Remember to ALWAYS convert units in your responses: use feet for altitude, knots for speed, and city/country names for locations.";
   return context;
 }
+
+// Fetch active flights from OpenSky API
+app.get('/api/activeFlights', async (req, res) => {
+  try {
+    const now = Date.now();
+    const timeSinceLastCall = now - lastOpenSkyCall;
+    
+    // Enforce rate limiting
+    if (timeSinceLastCall < RATE_LIMIT_WINDOW) {
+      await delay(RATE_LIMIT_WINDOW - timeSinceLastCall);
+    }
+
+    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+      try {
+        lastOpenSkyCall = Date.now();
+        // Fetch all states from OpenSky API
+        const response = await fetch(`${process.env.VITE_OPENSKY_BASE_URL}/states/all`);
+        
+        if (response.status === 429) {
+          const backoffTime = INITIAL_BACKOFF * Math.pow(2, attempt);
+          console.log(`Rate limited. Waiting ${backoffTime}ms before retry ${attempt + 1}/${MAX_RETRIES}`);
+          await delay(backoffTime);
+          continue;
+        }
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch active flights: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        if (!data.states || data.states.length === 0) {
+          return res.json({ flights: [] });
+        }
+
+        // Filter and process the flights
+        const activeFlights = data.states
+          .filter(state => 
+            state[8] === false && // not on ground
+            state[5] !== null && // has longitude
+            state[6] !== null && // has latitude
+            state[7] !== null && // has altitude
+            state[1]?.trim() // has callsign
+          )
+          .map(state => ({
+            icao24: state[0],
+            callsign: state[1]?.trim(),
+            originCountry: state[2],
+            longitude: state[5],
+            latitude: state[6],
+            altitude: state[7],
+            velocity: state[9],
+            trueTrack: state[10],
+          }))
+          .sort(() => Math.random()) // Randomly shuffle the flights
+          .slice(0, 5); // Take 5 random flights
+
+        res.json({ flights: activeFlights });
+        return;
+      } catch (error) {
+        if (attempt === MAX_RETRIES - 1) {
+          throw error;
+        }
+        const backoffTime = INITIAL_BACKOFF * Math.pow(2, attempt);
+        console.log(`Error occurred. Waiting ${backoffTime}ms before retry ${attempt + 1}/${MAX_RETRIES}`);
+        await delay(backoffTime);
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching active flights:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // OpenAI chat endpoint
 app.post('/api/openaiChat', async (req, res) => {
